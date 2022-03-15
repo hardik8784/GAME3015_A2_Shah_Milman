@@ -1,144 +1,14 @@
-//***************************************************************************************
-// Game.cpp 
-//***************************************************************************************
+#include "Game.h"
 
-#include "../../Common/d3dApp.h"
-#include "../../Common/MathHelper.h"
-#include "../../Common/UploadBuffer.h"
-#include "../../Common/GeometryGenerator.h"
-#include "../../Common/Camera.h"
-#include "FrameResource.h"
-#include "Waves.h"
-#include "SceneNode.h"
-#include "World.h"
-#include <ctime>
-#include "Player.h"
-
-using Microsoft::WRL::ComPtr;
-using namespace DirectX;
-using namespace DirectX::PackedVector;
-
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
 
 const int gNumFrameResources = 3;
 
-class Game : public D3DApp
-{
-public:
-	Game(HINSTANCE hInstance);
-	Game(const Game& rhs) = delete;
-	Game& operator=(const Game& rhs) = delete;
-	~Game();
-
-	virtual bool Initialize()override;
-
-private:
-	virtual void OnResize()override;
-	virtual void Update(const GameTimer& gt)override;
-	virtual void Draw(const GameTimer& gt)override;
-
-	virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
-	virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
-	virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
-
-	void OnKeyboardInput(const GameTimer& gt);
-
-	void UpdateObjectCBs(const GameTimer& gt);
-	void UpdateMaterialCBs(const GameTimer& gt);
-	void UpdateMainPassCB(const GameTimer& gt);
-
-	void MappingLights(const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& invView, const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& invProj,
-		const DirectX::XMMATRIX& viewProj, const DirectX::XMMATRIX& invViewProj, const GameTimer& gt);
-
-	void MoveGameObjects(const GameTimer& gt);
-
-	void LoadTextures();
-	void BuildRootSignature();
-	void BuildDescriptorHeaps();
-	void BuildShadersAndInputLayouts();
-
-	void BuildGroundGeometry();
-
-	void BuildPSOs();
-	void BuildFrameResources();
-	void BuildMaterials();
-	void BuildRenderItems();
-	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
-
-	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
-
-	float GetHillsHeight(float x, float z)const;
-	XMFLOAT3 GetHillsNormal(float x, float z)const;
-
-private:
-
-	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
-	FrameResource* mCurrFrameResource = nullptr;
-	int mCurrFrameResourceIndex = 0;
-
-	UINT mCbvSrvDescriptorSize = 0;
-
-	ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
-
-	ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
-
-	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
-	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
-	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
-	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
-
-	std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> mTreeSpriteInputLayout;
-
-	RenderItem* mWavesRitem = nullptr;
-
-	// List of all the render items.
-	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
-
-	// Render items divided by PSO.
-	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::Count];
-	std::vector<BoundingBox> mBoundingBoxes;
-	std::vector<BoundingSphere> mBoundingSpheres;
-
-	std::unique_ptr<Waves> mWaves;
-
-	PassConstants mMainPassCB;
-
-	Camera mCamera;
-
-	POINT mLastMousePos;
-
-	World world;
-};
-
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
-	PSTR cmdLine, int showCmd)
-{
-	// Enable run-time memory check for debug builds.
-#if defined(DEBUG) | defined(_DEBUG)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
-	try
-	{
-		Game game(hInstance);
-		if (!game.Initialize())
-			return 0;
-
-		return game.Run();
-	}
-	catch (DxException& e)
-	{
-		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-		return 0;
-	}
-}
 
 Game::Game(HINSTANCE hInstance)
 	: D3DApp(hInstance)
+	, mWorld(this)
 {
+
 }
 
 Game::~Game()
@@ -149,41 +19,22 @@ Game::~Game()
 
 bool Game::Initialize()
 {
-	srand((unsigned)time(0));
 	if (!D3DApp::Initialize())
 		return false;
 
+	mCamera.SetPosition(0, 10, 0);
+	mCamera.Pitch(3.14 / 2);
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
-	// Get the increment size of a descriptor in this heap type.  This is hardware specific, 
-	// so we have to query this information.
 	mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	//mCamera.SetPosition(0.8f * scaleFactor, 0.3 * scaleFactor, 1.0f * scaleFactor);
-	mCamera.SetPosition(0, 5, 0);
-	mCamera.Pitch(3.14 / 2);
-
-	mWaves = std::make_unique<Waves>(40, 80, 0.25, 0.03f, 1.0, 0.2f);
-
-	//Step 1 Load the textures
 	LoadTextures();
-
 	BuildRootSignature();
-
-	//Step 2 Build Descriptor heaps to allow for the new texture
 	BuildDescriptorHeaps();
-	BuildShadersAndInputLayouts();
-
-	// Step 3 Build the geometry for your shapes
-	BuildGroundGeometry();
-
-	// Step 4 Build the material
+	BuildShadersAndInputLayout();
+	BuildShapeGeometry();
 	BuildMaterials();
-
-	// Step 5 Build your render items
 	BuildRenderItems();
-
 	BuildFrameResources();
 	BuildPSOs();
 
@@ -201,37 +52,44 @@ bool Game::Initialize()
 void Game::OnResize()
 {
 	D3DApp::OnResize();
+
 	mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+
+
 }
 
 void Game::Update(const GameTimer& gt)
 {
 	OnKeyboardInput(gt);
-	//UpdateCamera(gt);
+	mWorld.update(gt);
+
+
 
 	// Cycle through the circular frame resource array.
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
 
-	// Has the GPU finished processing the commands of the current frame resource?
-	// If not, wait until the GPU has completed commands up to this roof point.
+	//this section is really what D3DApp::FlushCommandQueue() used to do for us at the end of each draw() function!
 	if (mCurrFrameResource->Fence != 0 && mFence->GetCompletedValue() < mCurrFrameResource->Fence)
 	{
+		std::wstring text2 = L"GPU Completed " + std::to_wstring(mFence->GetCompletedValue()) + L" but current fence is " + std::to_wstring(mCurrFrameResource->Fence) + L"\n";
+		OutputDebugString(text2.c_str());
+
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
 		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
 
+	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
 	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
-
-	world.update(gt, mAllRitems);
 }
 
 void Game::Draw(const GameTimer& gt)
 {
+
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
 
 	// Reuse the memory associated with command recording.
@@ -240,6 +98,7 @@ void Game::Draw(const GameTimer& gt)
 
 	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
 	// Reusing the command list reuses memory.
+	//step5
 	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
 
 	mCommandList->RSSetViewports(1, &mScreenViewport);
@@ -250,7 +109,7 @@ void Game::Draw(const GameTimer& gt)
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	// Clear the back buffer and depth buffer.
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), (float*)&mMainPassCB.FogColor, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	// Specify the buffers we are going to render to.
@@ -263,14 +122,13 @@ void Game::Draw(const GameTimer& gt)
 
 	auto passCB = mCurrFrameResource->PassCB->Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
-
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+	mWorld.draw();
+	//step5
+	//DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 	mCommandList->SetPipelineState(mPSOs["alphaTested"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTested]);
 
-	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
 	// Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -287,13 +145,15 @@ void Game::Draw(const GameTimer& gt)
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 
-	// Advance the roof value to mark commands up to this roof point.
+	// Advance the fence value to mark commands up to this fence point.
 	mCurrFrameResource->Fence = ++mCurrentFence;
 
-	// Add an instruction to the command queue to set a new roof point. 
-	// Because we are on the GPU timeline, the new roof point won't be 
+	// Add an instruction to the command queue to set a new fence point. 
+	// Because we are on the GPU timeline, the new fence point won't be 
 	// set until the GPU finishes processing all the commands prior to this Signal().
 	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
+
+
 }
 
 void Game::OnMouseDown(WPARAM btnState, int x, int y)
@@ -316,6 +176,13 @@ void Game::OnMouseMove(WPARAM btnState, int x, int y)
 		// Make each pixel correspond to a quarter of a degree.
 		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
+
+		// Update angles based on input to orbit camera around box.
+		mCamera.Pitch(dy);
+		mCamera.RotateY(dx);
+
+
+
 	}
 
 	mLastMousePos.x = x;
@@ -325,14 +192,56 @@ void Game::OnMouseMove(WPARAM btnState, int x, int y)
 void Game::OnKeyboardInput(const GameTimer& gt)
 {
 	const float dt = gt.DeltaTime();
-
 	mCamera.GetLook();
+
 	float tmin = 0;
 	float buffer = 0.5;
-	XMFLOAT3  oppositef3(-1, -1, -1);
+	XMFLOAT3 oppositef3(1, 1, 1);
 	XMVECTOR opposite = XMLoadFloat3(&oppositef3);
 
+	if (GetAsyncKeyState('W') & 0x8000)
+	{
+		bool hit = false;
+		if (!hit)
+		{
+			mCamera.Walk(10.0f * dt);
+		}
+	}
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		bool hit = false;
+		if (!hit)
+		{
+			mCamera.Walk(-10.0f * dt);
+		}
+	}
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		bool hit = false;
+		if (!hit)
+		{
+			mCamera.Strafe(-10.0f * dt);
+		}
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		bool hit = false;
+		if (!hit)
+		{
+			mCamera.Strafe(10.0f * dt);
+		}
+	}
 	mCamera.UpdateViewMatrix();
+
+}
+
+void Game::UpdateCamera(const GameTimer& gt)
+{
+	
+}
+
+void Game::AnimateMaterials(const GameTimer& gt)
+{
 }
 
 void Game::UpdateObjectCBs(const GameTimer& gt)
@@ -395,14 +304,6 @@ void Game::UpdateMainPassCB(const GameTimer& gt)
 	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
 	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
-	MappingLights(view, invView, proj, invProj, viewProj, invViewProj, gt);
-
-	auto currPassCB = mCurrFrameResource->PassCB.get();
-	currPassCB->CopyData(0, mMainPassCB);
-}
-
-void Game::MappingLights(const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& invView, const DirectX::XMMATRIX& proj, const DirectX::XMMATRIX& invProj, const DirectX::XMMATRIX& viewProj, const DirectX::XMMATRIX& invViewProj, const GameTimer& gt)
-{
 	XMStoreFloat4x4(&mMainPassCB.View, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&mMainPassCB.InvView, XMMatrixTranspose(invView));
 	XMStoreFloat4x4(&mMainPassCB.Proj, XMMatrixTranspose(proj));
@@ -416,28 +317,48 @@ void Game::MappingLights(const DirectX::XMMATRIX& view, const DirectX::XMMATRIX&
 	mMainPassCB.FarZ = 1000.0f;
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
-	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+	mMainPassCB.AmbientLight = { 0.95f,0.95f,0.95f,1.0f };
 	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-	mMainPassCB.Lights[3].Position = { -5.0f  , 3.0f , 0.0f };
-	mMainPassCB.Lights[3].Strength = { 1.0f, 0.0f, 0.0f };
-	mMainPassCB.Lights[3].Direction = { 0.0, -1.0, 0.0f };
-	mMainPassCB.Lights[3].FalloffStart = { 1.0f };
-	mMainPassCB.Lights[3].FalloffEnd = { 5.0f };
-	mMainPassCB.Lights[3].SpotPower = { 1.0f };
-}
-
-void Game::MoveGameObjects(const GameTimer& gt)
-{
+	mMainPassCB.Lights[0].Strength = { 0.6f,0.6f,0.6f };
+	mMainPassCB.Lights[1].Direction = { 0.57735f, -0.57735f, 0.57735f };
+	mMainPassCB.Lights[1].Strength = { 0.3f,0.3f,0.3f };
+	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707 };
+	mMainPassCB.Lights[2].Strength = { 0.15f,0.15f,0.15f };
+	auto currPassCB = mCurrFrameResource->PassCB.get();
+	currPassCB->CopyData(0, mMainPassCB);
 }
 
 void Game::LoadTextures()
 {
-	world.loadTextures(mTextures, md3dDevice, mCommandList);
+	auto eagleTex = std::make_unique<Texture>();
+	eagleTex->Name = "EagleTex";
+	eagleTex->Filename = L"../../Textures/Eagle.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), eagleTex->Filename.c_str(),
+		eagleTex->Resource, eagleTex->UploadHeap));
+
+	mTextures[eagleTex->Name] = std::move(eagleTex);
+
+
+
+	auto raptorTex = std::make_unique<Texture>();
+	raptorTex->Name = "RaptorTex";
+	raptorTex->Filename = L"../../Textures/Raptor.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), raptorTex->Filename.c_str(),
+		raptorTex->Resource, raptorTex->UploadHeap));
+
+	mTextures[raptorTex->Name] = std::move(raptorTex);
+
+
+	auto DesertTex = std::make_unique<Texture>();
+	DesertTex->Name = "DesertTex";
+	DesertTex->Filename = L"../../Textures/Desert.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), DesertTex->Filename.c_str(),
+		DesertTex->Resource, DesertTex->UploadHeap));
+
+	mTextures[DesertTex->Name] = std::move(DesertTex);
 }
 
 void Game::BuildRootSignature()
@@ -479,14 +400,10 @@ void Game::BuildRootSignature()
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
-
 void Game::BuildDescriptorHeaps()
 {
-	//
-	// Create the SRV heap.
-	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 10;
+	srvHeapDesc.NumDescriptors = 3;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -496,91 +413,79 @@ void Game::BuildDescriptorHeaps()
 	//
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-	auto backgroundTex = mTextures["BackgroundTex"]->Resource;
-	auto EagleTex = mTextures["EagleTex"]->Resource;
-	auto RaptorTex = mTextures["RaptorTex"]->Resource;
+	auto grassTex = mTextures["EagleTex"]->Resource;
+	auto waterTex = mTextures["RaptorTex"]->Resource;
+	auto fenceTex = mTextures["DesertTex"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = backgroundTex->GetDesc().Format;
+	srvDesc.Format = grassTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = -1;
-	md3dDevice->CreateShaderResourceView(backgroundTex.Get(), &srvDesc, hDescriptor);
-	// next descriptor
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
-
-	srvDesc.Format = EagleTex->GetDesc().Format;
-	md3dDevice->CreateShaderResourceView(EagleTex.Get(), &srvDesc, hDescriptor);
+	md3dDevice->CreateShaderResourceView(grassTex.Get(), &srvDesc, hDescriptor);
 
 	// next descriptor
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	srvDesc.Format = RaptorTex->GetDesc().Format;
-	md3dDevice->CreateShaderResourceView(RaptorTex.Get(), &srvDesc, hDescriptor);
-	
+	srvDesc.Format = waterTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(waterTex.Get(), &srvDesc, hDescriptor);
 
+	// next descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
+	srvDesc.Format = fenceTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(fenceTex.Get(), &srvDesc, hDescriptor);
 }
 
-void Game::BuildShadersAndInputLayouts()
+void Game::BuildShadersAndInputLayout()
 {
-	const D3D_SHADER_MACRO defines[] =
-	{
-		"FOG", "1",
-		NULL, NULL
-	};
-
 	const D3D_SHADER_MACRO alphaTestDefines[] =
 	{
 		"FOG", "1",
 		"ALPHA_TEST", "1",
 		NULL, NULL
 	};
-
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", defines, "PS", "ps_5_1");
+	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 	mShaders["alphaTestedPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", alphaTestDefines, "PS", "ps_5_1");
 
-	mShaders["treeSpriteVS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["treeSpriteGS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", nullptr, "GS", "gs_5_1");
-	mShaders["treeSpritePS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", alphaTestDefines, "PS", "ps_5_1");
 
-	mStdInputLayout =
+
+	mInputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
-	mTreeSpriteInputLayout =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-	};
+
+
 }
 
-void Game::BuildGroundGeometry()
+void Game::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
-	GeometryGenerator::MeshData ground = geoGen.CreateBox(20, 0.2, 20, 1);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 0.0f, 1.0f, 1);
+	SubmeshGeometry submesh;
+	submesh.IndexCount = (UINT)box.Indices32.size();
+	submesh.StartIndexLocation = 0;
+	submesh.BaseVertexLocation = 0;
 
-	std::vector<Vertex> vertices(ground.Vertices.size());
-	for (size_t i = 0; i < ground.Vertices.size(); ++i)
+	std::vector<Vertex> vertices(box.Vertices.size());
+	for (size_t i = 0; i < box.Vertices.size(); ++i)
 	{
-		auto& p = ground.Vertices[i].Position;
+		auto& p = box.Vertices[i].Position;
 		vertices[i].Pos = p;
-		vertices[i].Normal = ground.Vertices[i].Normal;
-		vertices[i].TexC = ground.Vertices[i].TexC;
+		vertices[i].Normal = box.Vertices[i].Normal;
+		vertices[i].TexC = box.Vertices[i].TexC;
 	}
-
+	std::vector<std::uint16_t> indices = box.GetIndices16();
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-
-	std::vector<std::uint16_t> indices = ground.GetIndices16();
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	auto geo = std::make_unique<MeshGeometry>();
-	geo->Name = "groundGeo";
+	geo->Name = "boxGeo";
 
 	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
 	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
@@ -599,17 +504,11 @@ void Game::BuildGroundGeometry()
 	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->IndexBufferByteSize = ibByteSize;
 
-	SubmeshGeometry submesh;
-	submesh.IndexCount = (UINT)indices.size();
-	submesh.StartIndexLocation = 0;
-	submesh.BaseVertexLocation = 0;
 
-	geo->DrawArgs["ground"] = submesh;
+	geo->DrawArgs["box"] = submesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
-
-
 
 void Game::BuildPSOs()
 {
@@ -619,7 +518,7 @@ void Game::BuildPSOs()
 	// PSO for opaque objects.
 	//
 	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { mStdInputLayout.data(), (UINT)mStdInputLayout.size() };
+	opaquePsoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
 	opaquePsoDesc.pRootSignature = mRootSignature.Get();
 	opaquePsoDesc.VS =
 	{
@@ -638,36 +537,13 @@ void Game::BuildPSOs()
 	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaquePsoDesc.NumRenderTargets = 1;
 	opaquePsoDesc.RTVFormats[0] = mBackBufferFormat;
-
 	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
 
-	//
-	// PSO for transparent objects
-	//
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
-
-	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
-	transparencyBlendDesc.BlendEnable = true;
-	transparencyBlendDesc.LogicOpEnable = false;
-	transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-	transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-	transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-	transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
-	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	//transparentPsoDesc.BlendState.AlphaToCoverageEnable = true;
-
-	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
-	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
-
-	//
+	// step 8
 	// PSO for alpha tested objects
 	//
 
@@ -686,18 +562,52 @@ void Game::BuildFrameResources()
 	for (int i = 0; i < gNumFrameResources; ++i)
 	{
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-			1, (UINT)mAllRitems.size(), (UINT)mMaterials.size(), mWaves->VertexCount()));
+			1, (UINT)mAllRitems.size(), (UINT)mMaterials.size()));
+
 	}
 }
 
 void Game::BuildMaterials()
 {
-	world.buildMaterials(mMaterials);
+	auto eagle = std::make_unique<Material>();
+	eagle->Name = "Eagle";
+	eagle->MatCBIndex = 0;
+	eagle->DiffuseSrvHeapIndex = 0;
+	eagle->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	eagle->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	eagle->Roughness = 0.2f;
+	mMaterials["Eagle"] = std::move(eagle);
+
+	auto raptor = std::make_unique<Material>();
+	raptor->Name = "Raptor";
+	raptor->MatCBIndex = 1;
+	raptor->DiffuseSrvHeapIndex = 1;
+	raptor->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	raptor->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	raptor->Roughness = 0.125f;
+	mMaterials["Raptor"] = std::move(raptor);
+
+	auto desert = std::make_unique<Material>();
+	desert->Name = "Desert";
+	desert->MatCBIndex = 2;
+	desert->DiffuseSrvHeapIndex = 2;
+	desert->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	desert->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	desert->Roughness = 0.125f;
+	mMaterials["Desert"] = std::move(desert);
 }
 
 void Game::BuildRenderItems()
 {
-	world.buildScene(mAllRitems, mMaterials, mTextures, mGeometries, mRitemLayer);
+	mWorld.buildScene();
+	for (auto& e : mAllRitems)
+	{
+		//mOpaqueRitems.push_back(e.get());
+
+		mRitemLayer[(int)RenderLayer::Opaque].push_back(e.get());
+		mRitemLayer[(int)RenderLayer::AlphaTested].push_back(e.get());
+	}
+
 }
 
 void Game::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
@@ -715,7 +625,6 @@ void Game::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector
 
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
-		//
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
@@ -735,7 +644,7 @@ void Game::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Game::GetStaticSamplers()
 {
 	// Applications usually only need a handful of samplers.  So just define them all up front
-	// and keep them available as part of the root signature.  
+		// and keep them available as part of the root signature.  
 
 	const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
 		0, // shaderRegister
@@ -789,21 +698,19 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Game::GetStaticSamplers()
 		anisotropicWrap, anisotropicClamp };
 }
 
-float Game::GetHillsHeight(float x, float z)const
+
+
+std::vector<std::unique_ptr<RenderItem>>& Game::getRenderItems()
 {
-	return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+	return mAllRitems;
 }
 
-XMFLOAT3 Game::GetHillsNormal(float x, float z)const
+std::unordered_map<std::string, std::unique_ptr<Material>>& Game::getMaterials()
 {
-	// n = (-df/dx, 1, -df/dz)
-	XMFLOAT3 n(
-		-0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z),
-		1.0f,
-		-0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z));
+	return mMaterials;
+}
 
-	XMVECTOR unitNormal = XMVector3Normalize(XMLoadFloat3(&n));
-	XMStoreFloat3(&n, unitNormal);
-
-	return n;
+std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>& Game::getGeometries()
+{
+	return mGeometries;
 }

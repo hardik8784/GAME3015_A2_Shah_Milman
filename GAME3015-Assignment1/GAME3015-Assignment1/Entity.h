@@ -1,38 +1,43 @@
+
 #pragma once
-
 #include "SceneNode.h"
-#include <vector>
-
-
 class Entity : public SceneNode
 {
+public:
+	
+	Entity(Game* game);
+	
+	void			SetVelocity(XMFLOAT3 velocity);
+	
+	void			SetVelocity(float vx, float vy, float vz);
+	
+	XMFLOAT3		GetVelocity() const;
+	
+	virtual void	updateCurrent(const GameTimer& gt);
 
 public:
-	void setVelocity(XMVECTOR velocity);
-	void setVelocity(float vx, float vy, float vz);
-	XMVECTOR getVelocity() const;
-
-	virtual	void updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
-public:
-	XMVECTOR mVelocity;
+	XMFLOAT3		mVelocity;
 };
 
-//* Week3-Demo7 Code
+
 //#pragma once
+//
 //#include <SceneNode.hpp>
 //
 //
 //class Entity : public SceneNode
-//
 //{
 //public:
 //	void				setVelocity(sf::Vector2f velocity);
 //	void				setVelocity(float vx, float vy);
 //	sf::Vector2f		getVelocity() const;
+//	void				accelerate(sf::Vector2f velocity);
+//	void				accelerate(float vx, float vy);
 //
-//	virtual	void		updateCurrent(sf::Time dt);
+//private:
+//	virtual void		updateCurrent(sf::Time dt);
 //
-//public:
+//private:
 //	sf::Vector2f		mVelocity;
 //};
 //

@@ -1,34 +1,41 @@
 #include "Entity.h"
 
-void Entity::setVelocity(XMVECTOR velocity)
+Entity::Entity(Game* game)
+	:SceneNode(game)
+	, mVelocity(0, 0, 0)
+{
+}
+
+void Entity::SetVelocity(XMFLOAT3 velocity)
 {
 	mVelocity = velocity;
 }
 
-void Entity::setVelocity(float vx, float vy, float vz)
+void Entity::SetVelocity(float vx, float vy, float vz)
 {
-	mVelocity = XMVECTOR{ vx, vy, vz };
+	mVelocity = XMFLOAT3(vx, vy, vz);
 }
 
-XMVECTOR Entity::getVelocity() const
+XMFLOAT3 Entity::GetVelocity() const
 {
 	return mVelocity;
 }
 
-void Entity::updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
+void Entity::updateCurrent(const GameTimer& gt)
 {
-	XMVECTOR move = mVelocity * dt.DeltaTime();
-	mPosition = XMVectorAdd(SceneNode::getWorldPosition(), move);
-	renderItem = std::move(renderList[renderIndex]);
-	renderItem->NumFramesDirty = 1;
-	XMStoreFloat4x4(&renderItem->World, XMMatrixScaling(XMVectorGetX(ScaleFactor), XMVectorGetY(ScaleFactor), XMVectorGetZ(ScaleFactor)) * XMMatrixTranslationFromVector(mPosition));
-	renderList[renderIndex] = std::move(renderItem);
+	XMFLOAT3 mV;
+	mV.x = mVelocity.x * gt.DeltaTime();
+	mV.y = mVelocity.y * gt.DeltaTime();
+	mV.z = mVelocity.z * gt.DeltaTime();
 
+	move(mV.x, mV.y, mV.z);
+
+	renderer->World = getWorldTransform();
+	renderer->NumFramesDirty++;
 }
-
-
-//* Week3-Demo7 Code
-//#include "Entity.hpp"
+//
+//#include <Entity.hpp>
+//
 //
 //void Entity::setVelocity(sf::Vector2f velocity)
 //{
@@ -49,6 +56,16 @@ void Entity::updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>
 //void Entity::updateCurrent(sf::Time dt)
 //{
 //	move(mVelocity * dt.asSeconds());
-//}\
-
-
+//}
+//
+//void Entity::accelerate(sf::Vector2f velocity)
+//{
+//	mVelocity += velocity;
+//}
+//
+//void Entity::accelerate(float vx, float vy)
+//{
+//	mVelocity.x += vx;
+//	mVelocity.y += vy;
+//}
+//
