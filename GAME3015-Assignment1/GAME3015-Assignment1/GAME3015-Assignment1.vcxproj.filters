@@ -138,6 +138,9 @@
     <ClInclude Include="World.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Game.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\TreeSprite.hlsl">
