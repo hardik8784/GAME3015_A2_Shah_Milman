@@ -1,41 +1,34 @@
 #include "Entity.h"
 
-Entity::Entity(Game* game)
-	:SceneNode(game)
-	, mVelocity(0, 0, 0)
-{
-}
-
-void Entity::SetVelocity(XMFLOAT3 velocity)
+void Entity::setVelocity(XMVECTOR velocity)
 {
 	mVelocity = velocity;
 }
 
-void Entity::SetVelocity(float vx, float vy, float vz)
+void Entity::setVelocity(float vx, float vy, float vz)
 {
-	mVelocity = XMFLOAT3(vx, vy, vz);
+	mVelocity = XMVECTOR{ vx, vy, vz };
 }
 
-XMFLOAT3 Entity::GetVelocity() const
+XMVECTOR Entity::getVelocity() const
 {
 	return mVelocity;
 }
 
-void Entity::updateCurrent(const GameTimer& gt)
+void Entity::updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
 {
-	XMFLOAT3 mV;
-	mV.x = mVelocity.x * gt.DeltaTime();
-	mV.y = mVelocity.y * gt.DeltaTime();
-	mV.z = mVelocity.z * gt.DeltaTime();
+	XMVECTOR move = mVelocity * dt.DeltaTime();
+	mPosition = XMVectorAdd(SceneNode::getWorldPosition(), move);
+	renderItem = std::move(renderList[renderIndex]);
+	renderItem->NumFramesDirty = 1;
+	XMStoreFloat4x4(&renderItem->World, XMMatrixScaling(XMVectorGetX(ScaleFactor), XMVectorGetY(ScaleFactor), XMVectorGetZ(ScaleFactor)) * XMMatrixTranslationFromVector(mPosition));
+	renderList[renderIndex] = std::move(renderItem);
 
-	move(mV.x, mV.y, mV.z);
-
-	renderer->World = getWorldTransform();
-	renderer->NumFramesDirty++;
 }
-//
-//#include <Entity.hpp>
-//
+
+
+//* Week3-Demo7 Code
+//#include "Entity.hpp"
 //
 //void Entity::setVelocity(sf::Vector2f velocity)
 //{
@@ -56,16 +49,6 @@ void Entity::updateCurrent(const GameTimer& gt)
 //void Entity::updateCurrent(sf::Time dt)
 //{
 //	move(mVelocity * dt.asSeconds());
-//}
-//
-//void Entity::accelerate(sf::Vector2f velocity)
-//{
-//	mVelocity += velocity;
-//}
-//
-//void Entity::accelerate(float vx, float vy)
-//{
-//	mVelocity.x += vx;
-//	mVelocity.y += vy;
-//}
-//
+//}\
+
+

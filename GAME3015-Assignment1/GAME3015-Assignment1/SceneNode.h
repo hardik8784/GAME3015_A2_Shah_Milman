@@ -1,13 +1,8 @@
-/**
-* @brief SceneNode class
-*/
 #pragma once
+
 #include "../../Common/d3dApp.h"
 #include "../../Common/MathHelper.h"
-#include "../../Common/UploadBuffer.h"
-#include "../../Common/GeometryGenerator.h"
-#include "../../Common/Camera.h"
-#include "FrameResource.h"
+#include <vector>
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -15,8 +10,6 @@ using namespace DirectX::PackedVector;
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
-
-
 
 // Lightweight structure stores parameters to draw a shape.  This will
 // vary from app-to-app.
@@ -44,110 +37,92 @@ struct RenderItem
 	MeshGeometry* Geo = nullptr;
 
 	// Primitive topology.
-	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	// DrawIndexedInstanced parameters.
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	int BaseVertexLocation = 0;
 };
-class Game;
 
 class SceneNode
 {
 public:
 	typedef std::unique_ptr<SceneNode> Ptr;
-	/// <summary>
-	/// SceneNode class constructor
-	/// </summary>
-	/// <param name="_game">pointer to game class</param>
-	SceneNode(Game* _game);
-	/// <summary>
-	/// attachChild function.
-	/// Adds sceneNodes to mChildren
-	/// </summary>
-	/// <param name="child">pointer to a sceneNode</param>
-	void				attachChild(Ptr child);
-	/// <summary>
-	/// detachChild function.
-	/// </summary>
-	/// Removes sceneNode from mChildren
-	/// <param name="node">referance to a sceneNode</param>
-	/// <returns>pointer to the removed sceneNode</returns>
-	Ptr					detachChild(const SceneNode& node);
-	/// <summary>
-	/// update function.
-	/// </summary>
-	/// <param name="gt">referance to GameTimer</param>
-	void				update(const GameTimer& gt);
-	/// <summary>
-	/// Draw function
-	/// </summary>
-	void				draw() const;
-	/// <summary>
-	/// Build function
-	/// </summary>
-	void				build();
-	/// <summary>
-	/// getWorldPosition function
-	/// </summary>
-	/// <returns>mWorldPosition</returns>
-	XMFLOAT3			getWorldPosition() const;
-	/// <summary>
-	/// setPosition function
-	/// </summary>
-	void				setPosition(float x, float y, float z);
-	/// <summary>
-	/// getWorldRotation fucntion
-	/// </summary>
-	/// <returns>mWorldRotation</returns>
-	XMFLOAT3			getWorldRotation() const;
-	/// <summary>
-	/// setRotation function
-	/// </summary>
-	void				setRotation(float x, float y, float z);
-	/// <summary>
-	/// getWorldScale function
-	/// </summary>
-	/// <returns>mworldScaling</returns>
-	XMFLOAT3			getWorldScale() const;
-	/// <summary>
-	/// setScale function
-	/// </summary>
-	void				setScale(float x, float y, float z);
-	/// <summary>
-	/// getWorldTransform function
-	/// </summary>
-	/// <returns>XMFLOAT4X4</returns>
-	XMFLOAT4X4			getWorldTransform() const;
-	/// <summary>
-	/// getTransform fucntion
-	/// </summary>
-	/// <returns>XMFLOAT4X4</returns>
-	XMFLOAT4X4			getTransform()	const;
-	/// <summary>
-	/// move function.
-	/// Adds to position of the sceneNode
-	/// </summary>
-	void				move(float x, float y, float z);
-private:
-	virtual void		updateCurrent(const GameTimer& gt);
-	void				updateChildren(const GameTimer& gt);
 
-	virtual void		drawCurrent() const;
-	void				drawChildren() const;
-	virtual void		buildCurrent();
-	void				buildChildren();
+public:
+	SceneNode();
+	void attachChild(Ptr child);
+	Ptr	detachChild(const SceneNode& node);
 
-protected:
-	Game*				game;
-	RenderItem*			renderer;
+	void update(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
+
+	XMVECTOR getWorldPosition() const;
+	XMVECTOR getWorldTransform() const;
+
+	std::unique_ptr<RenderItem> renderItem;
+	int renderIndex;
+
+	XMVECTOR mPosition;
+	XMVECTOR ScaleFactor;
 
 private:
-	XMFLOAT3			mWorldPosition;
-	XMFLOAT3			mWorldRotation;
-	XMFLOAT3			mworldScaling;
-	std::vector<Ptr>	mChildren;
-	SceneNode*			mParent;
+	virtual void updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
+	void updateChildren(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
+
+	virtual void draw(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems) ;
+	virtual void drawCurrent(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems);
+	void drawChildren(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems);
+
+
+private:
+	std::vector<Ptr> mChildren;
+	SceneNode* mParent;
 };
 
+
+/*
+* Week3-Demo7 Code
+
+#pragma once
+
+#include <SFML/System/NonCopyable.hpp>
+#include <SFML/System/Time.hpp>
+#include <SFML/Graphics/Transformable.hpp>
+#include <SFML/Graphics/Drawable.hpp>
+
+#include <vector>
+#include <memory>
+
+
+class SceneNode : public sf::Transformable, public sf::Drawable, private sf::NonCopyable
+{
+public:
+	typedef std::unique_ptr<SceneNode> Ptr;
+
+
+public:
+	SceneNode();
+
+	void					attachChild(Ptr child);
+	Ptr						detachChild(const SceneNode& node);
+
+	void					update(sf::Time dt);
+
+	sf::Vector2f			getWorldPosition() const;
+	sf::Transform			getWorldTransform() const;
+
+
+private:
+	virtual void			updateCurrent(sf::Time dt);
+	void					updateChildren(sf::Time dt);
+
+	virtual void			draw(sf::RenderTarget& target, sf::RenderStates states) const;
+	virtual void			drawCurrent(sf::RenderTarget& target, sf::RenderStates states) const;
+	void					drawChildren(sf::RenderTarget& target, sf::RenderStates states) const;
+
+
+private:
+	std::vector<Ptr>		mChildren;
+	SceneNode* mParent;
+};*/

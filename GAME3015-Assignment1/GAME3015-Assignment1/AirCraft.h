@@ -1,49 +1,32 @@
-/**
-* @brief Aircraft class.
-* Creats Aircraft renderItem
-*
-*/
 #pragma once
-#include "Entity.h"
 
-#include <string>
+#include "Entity.h""
 
-class Aircraft : public Entity
-{
 
+
+class Aircraft : public Entity {
 public:
-	enum  Type
-	{
+	enum Type {
 		Eagle,
-		Raptor,
+		Raptor
 	};
-	/// <summary>
-	/// Aircraft class constructor
-	/// </summary>
-	/// <param name="type">type of the aircraft</param>
-	/// <param name="game">pointer to game</param>
-	Aircraft(Type type, Game* game);
+
+public: 
+	Aircraft(Type type);
 
 
-private:
-
-	virtual void		drawCurrent() const;
-	/// <summary>
-	/// buildCurrent function.
-	/// setting up renderItem for aircraft
-	/// </summary>
-	virtual void		buildCurrent();
+	void Update();
 
 private:
-	Type				mType;
-	std::string			mSprite;
+	// Attributes
+	Type type;
+	
 
+	// Methods
+	virtual void drawCurrent(GameTimer dt);
 };
+
 //
-//#pragma once
-//
-//#include <Entity.hpp>
-//#include <ResourceIdentifiers.hpp>
 //#include <SFML/Graphics/Sprite.hpp>
 //
 //
@@ -59,8 +42,6 @@ private:
 //
 //public:
 //	Aircraft(Type type, const TextureHolder& textures);
-//	virtual unsigned int	getCategory() const;
-//
 //
 //
 //private:
@@ -71,5 +52,3 @@ private:
 //	Type				mType;
 //	sf::Sprite			mSprite;
 //};
-//
-//

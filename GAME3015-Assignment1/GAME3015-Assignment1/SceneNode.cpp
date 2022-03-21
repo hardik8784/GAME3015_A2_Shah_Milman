@@ -1,18 +1,12 @@
 #include "SceneNode.h"
 
-SceneNode::SceneNode(Game* game) :
-	mChildren(),
-	mParent(nullptr),
-	game(game)
+
+SceneNode::SceneNode() : mChildren(), mParent(nullptr)
 {
-	mWorldPosition = XMFLOAT3(0, 0, 0);
-	mworldScaling = XMFLOAT3(1, 1, 1);
-	mWorldRotation = XMFLOAT3(0, 0, 0);
 }
 
 void SceneNode::attachChild(Ptr child)
 {
-
 	child->mParent = this;
 	mChildren.push_back(std::move(child));
 }
@@ -28,138 +22,136 @@ SceneNode::Ptr SceneNode::detachChild(const SceneNode& node)
 	return result;
 }
 
-void SceneNode::update(const GameTimer& gt)
+
+
+void SceneNode::update(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
 {
-	updateCurrent(gt);
-	updateChildren(gt);
+	updateCurrent(dt, renderList);
+	updateChildren(dt, renderList);
 }
 
-void SceneNode::draw() const
+XMVECTOR SceneNode::getWorldPosition() const
 {
-
-	// Draw node and children with changed transform
-	drawCurrent();
-	drawChildren();
+	return getWorldTransform();
 }
 
-void SceneNode::build()
+XMVECTOR SceneNode::getWorldTransform() const
 {
-	buildCurrent();
-	buildChildren();
-}
+	XMVECTOR transform = { 0.0,0.0,0.0 };
 
-XMFLOAT3 SceneNode::getWorldPosition() const
-{
-	return mWorldPosition;
-}
-
-void SceneNode::setPosition(float x, float y, float z)
-{
-	mWorldPosition.x = x;
-	mWorldPosition.y = y;
-	mWorldPosition.z = z;
-}
-
-XMFLOAT3 SceneNode::getWorldRotation() const
-{
-	return mWorldRotation;
-}
-
-void SceneNode::setRotation(float x, float y, float z)
-{
-	
-	mWorldRotation.x = x;
-	mWorldRotation.y = y;
-	mWorldRotation.z = z;
-
-}
-
-XMFLOAT3 SceneNode::getWorldScale() const
-{
-	return mworldScaling;
-}
-
-void SceneNode::setScale(float x, float y, float z)
-{
-	mworldScaling.x = x;
-	mworldScaling.y = y;
-	mworldScaling.z = z;
-}
-
-XMFLOAT4X4 SceneNode::getWorldTransform() const
-{
-
-	XMFLOAT4X4 transform = MathHelper::Identity4x4();
-	XMMATRIX T = XMLoadFloat4x4(&transform);
 	for (const SceneNode* node = this; node != nullptr; node = node->mParent)
-	{
-		XMMATRIX Tp = XMLoadFloat4x4(&node->getTransform());
-		T = Tp * T;
-
-	}
-
-	XMStoreFloat4x4(&transform, T);
-
+		transform = node->mPosition + transform;
 
 	return transform;
 }
 
-XMFLOAT4X4 SceneNode::getTransform() const
+void SceneNode::updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
 {
-	XMFLOAT4X4 transform = MathHelper::Identity4x4();
-	XMMATRIX T = XMMatrixScaling(mworldScaling.x, mworldScaling.y, mworldScaling.z)
-				* XMMatrixTranslation(mWorldPosition.x, mWorldPosition.y, mWorldPosition.z)
-				* XMMatrixRotationRollPitchYaw(mWorldRotation.x, mWorldRotation.y, mWorldRotation.z);
-	XMStoreFloat4x4(&transform, T);
-
-
-	return transform;
-
+	// Do nothing by default
 }
 
-void SceneNode::move(float x, float y, float z)
-{
-	mWorldPosition.x += x;
-	mWorldPosition.y += y;
-	mWorldPosition.z += z;
-}
-
-void SceneNode::updateCurrent(const GameTimer& gt)
-{
-
-}
-
-void SceneNode::updateChildren(const GameTimer& gt)
+void SceneNode::updateChildren(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
 {
 	for (Ptr& child : mChildren)
 	{
-		child->update(gt);
+		child->update(dt, renderList);
 	}
 }
 
-void SceneNode::drawCurrent() const
-{
-
-}
-
-void SceneNode::drawChildren() const
-{
-	for (const Ptr& child : mChildren)
-	{
-		child->draw();
-
-	}
-}
-
-void SceneNode::buildCurrent()
+void SceneNode::draw(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems)
 {
 }
 
-void SceneNode::buildChildren()
+void SceneNode::drawCurrent(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems)
 {
-	for (const Ptr& child : mChildren)
-	{
-		child->build();
-
-	}
+	// Do nothing by default
 }
+
+void SceneNode::drawChildren(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems)
+{
+}
+//* Week3-Demo7 Code
+//#include <SceneNode.hpp>
+//#include <algorithm>
+//#include <cassert>
+//
+//
+//SceneNode::SceneNode()
+//	: mChildren()
+//	, mParent(nullptr)
+//{
+//}
+//
+//void SceneNode::attachChild(Ptr child)
+//{
+//	child->mParent = this;
+//	mChildren.push_back(std::move(child));
+//}
+//
+//SceneNode::Ptr SceneNode::detachChild(const SceneNode& node)
+//{
+//	auto found = std::find_if(mChildren.begin(), mChildren.end(), [&](Ptr& p) { return p.get() == &node; });
+//	assert(found != mChildren.end());
+//
+//	Ptr result = std::move(*found);
+//	result->mParent = nullptr;
+//	mChildren.erase(found);
+//	return result;
+//}
+//
+//void SceneNode::update(sf::Time dt)
+//{
+//	updateCurrent(dt);
+//	updateChildren(dt);
+//}
+//
+//void SceneNode::updateCurrent(sf::Time)
+//{
+//	// Do nothing by default
+//}
+//
+//void SceneNode::updateChildren(sf::Time dt)
+//{
+//	for (Ptr& child : mChildren)
+//	{
+//		child->update(dt);
+//	}
+//}
+//
+//void SceneNode::draw(sf::RenderTarget& target, sf::RenderStates states) const
+//{
+//	// Apply transform of current node
+//	states.transform *= getTransform();
+//
+//	// Draw node and children with changed transform
+//	drawCurrent(target, states);
+//	drawChildren(target, states);
+//}
+//
+//void SceneNode::drawCurrent(sf::RenderTarget&, sf::RenderStates) const
+//{
+//	// Do nothing by default
+//}
+//
+//void SceneNode::drawChildren(sf::RenderTarget& target, sf::RenderStates states) const
+//{
+//	for (const Ptr& child : mChildren)
+//		child->draw(target, states);
+//}
+//
+//sf::Vector2f SceneNode::getWorldPosition() const
+//{
+//	return getWorldTransform() * sf::Vector2f();
+//}
+//
+//sf::Transform SceneNode::getWorldTransform() const
+//{
+//	sf::Transform transform = sf::Transform::Identity;
+//
+//	for (const SceneNode* node = this; node != nullptr; node = node->mParent)
+//		transform = node->getTransform() * transform;
+//
+//	return transform;
+//}
+//
+

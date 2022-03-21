@@ -49,7 +49,13 @@
     <ClCompile Include="..\..\Common\MathHelper.cpp">
       <Filter>Game Engine\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Aircraft.cpp">
+    <ClCompile Include="AirCraft.cpp">
+      <Filter>Game\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Command.cpp">
+      <Filter>Game\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQue.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="Entity.cpp">
@@ -61,28 +67,16 @@
     <ClCompile Include="Game.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="Player.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="SceneNode.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
-    <ClCompile Include="SpriteNode.cpp">
+    <ClCompile Include="Waves.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="World.cpp">
-      <Filter>Game\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Player.cpp">
-      <Filter>Game\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="AircraftMover.cpp">
-      <Filter>Game\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQue.cpp">
-      <Filter>Game\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Command.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -114,31 +108,7 @@
     <ClInclude Include="..\..\Common\UploadBuffer.h">
       <Filter>Game Engine\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Aircraft.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Entity.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameResource.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneNode.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="SpriteNode.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="World.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="AircraftMover.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Player.h">
+    <ClInclude Include="AirCraft.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="Category.h">
@@ -148,6 +118,24 @@
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="CommandQue.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameResource.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneNode.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Waves.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
   </ItemGroup>
