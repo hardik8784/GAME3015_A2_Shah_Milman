@@ -1,54 +1,31 @@
 #pragma once
+#include "Entity.h"
+#include <string>
 
-#include "Entity.h""
-
-
-
-class Aircraft : public Entity {
+class Aircraft :
+	public Entity
+{
 public:
-	enum Type {
+
+	enum class Type
+	{
 		Eagle,
-		Raptor
+		Raptor,
 	};
 
-public: 
-	Aircraft(Type type);
 
+public:
+	Aircraft(Type type, Game* game);
+	virtual unsigned int getCategory() const;
 
-	void Update();
 
 private:
-	// Attributes
-	Type type;
-	
+	virtual void		drawCurrent() const;
+	virtual void		buildCurrent();
 
-	// Methods
-	virtual void drawCurrent(GameTimer dt);
+
+private:
+	Type				mType;
+	std::string			mSprite;
+	RenderItem* mAircraftRitem;
 };
-
-//
-//#include <SFML/Graphics/Sprite.hpp>
-//
-//
-//class Aircraft : public Entity
-//{
-//public:
-//	enum Type
-//	{
-//		Eagle,
-//		Raptor,
-//	};
-//
-//
-//public:
-//	Aircraft(Type type, const TextureHolder& textures);
-//
-//
-//private:
-//	virtual void		drawCurrent(sf::RenderTarget& target, sf::RenderStates states) const;
-//
-//
-//private:
-//	Type				mType;
-//	sf::Sprite			mSprite;
-//};

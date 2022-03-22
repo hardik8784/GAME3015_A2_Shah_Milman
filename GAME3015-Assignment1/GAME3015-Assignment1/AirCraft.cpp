@@ -1,55 +1,75 @@
-#include "Entity.h"
-#include "AirCraft.h"
+#include "Aircraft.h"
+#include "Game.h"
 
-
-
-
-Aircraft::Aircraft(Type type)
-	: type(type)
+Aircraft::Aircraft(Type type, Game* game) : Entity(game)
+, mType(type)
 {
-}
-
-void Aircraft::Update()
-{
-}
-
-void Aircraft::drawCurrent(GameTimer dt)
+	switch (type)
 	{
+	case (Type::Eagle):
+		mSprite = "Eagle";
+		break;
+	case (Type::Raptor):
+		mSprite = "Raptor";
+		break;
+	default:
+		mSprite = "Eagle";
+		break;
 	}
+}
 
+unsigned int Aircraft::getCategory() const
+{
+	switch (mType)
+	{
+	case Type::Eagle:
+		return Category::PlayerAircraft;
 
+	default:
+		return Category::EnemyAircraft;
+	}
+}
 
+void Aircraft::buildCurrent()
+{
+	auto render = std::make_unique<RenderItem>();
+	renderer = render.get();
+	renderer->World = getTransform();
+	renderer->ObjCBIndex = (UINT)game->getRenderItems().size();
+	renderer->Mat = game->getMaterials()[mSprite].get();
+	renderer->Geo = game->getGeometries()["boxGeo"].get();
+	renderer->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	renderer->IndexCount = renderer->Geo->DrawArgs["box"].IndexCount;
+	renderer->StartIndexLocation = renderer->Geo->DrawArgs["box"].StartIndexLocation;
+	renderer->BaseVertexLocation = renderer->Geo->DrawArgs["box"].BaseVertexLocation;
+	mAircraftRitem = render.get();
+	game->getRenderItems().push_back(std::move(render));
+}
 
-//#include <Aircraft.hpp>
-//#include <ResourceHolder.hpp>
-//
-//#include <SFML/Graphics/RenderTarget.hpp>
-//#include <SFML/Graphics/RenderStates.hpp>
-//
-//
-//Textures::ID toTextureID(Aircraft::Type type)
-//{
-//	switch (type)
-//	{
-//	case Aircraft::Eagle:
-//		return Textures::Eagle;
-//
-//	case Aircraft::Raptor:
-//		return Textures::Raptor;
-//	}
-//	return Textures::Eagle;
-//}
-//
-//Aircraft::Aircraft(Type type, const TextureHolder& textures)
-//	: mType(type)
-//	, mSprite(textures.get(toTextureID(type)))
-//{
-//	sf::FloatRect bounds = mSprite.getLocalBounds();
-//	mSprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
-//}
-//
-//void Aircraft::drawCurrent(sf::RenderTarget& target, sf::RenderStates states) const
-//{
-//	target.draw(mSprite, states);
-//}
-//
+void Aircraft::drawCurrent() const
+{
+	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+	UINT matCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
+
+	auto objectCB = game->mCurrFrameResource->ObjectCB->Resource();
+	auto matCB = game->mCurrFrameResource->MaterialCB->Resource();
+
+	if (mAircraftRitem != nullptr)
+	{
+		game->getCmdList()->IASetVertexBuffers(0, 1, &mAircraftRitem->Geo->VertexBufferView());
+		game->getCmdList()->IASetIndexBuffer(&mAircraftRitem->Geo->IndexBufferView());
+		game->getCmdList()->IASetPrimitiveTopology(mAircraftRitem->PrimitiveType);
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(game->mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		tex.Offset(mAircraftRitem->Mat->DiffuseSrvHeapIndex, game->mCbvSrvDescriptorSize);
+
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + (UINT64)mAircraftRitem->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + (UINT64)mAircraftRitem->Mat->MatCBIndex * matCBByteSize;
+
+		game->getCmdList()->SetGraphicsRootDescriptorTable(0, tex);
+		game->getCmdList()->SetGraphicsRootConstantBufferView(1, objCBAddress);
+		game->getCmdList()->SetGraphicsRootConstantBufferView(3, matCBAddress);
+
+		game->getCmdList()->DrawIndexedInstanced(mAircraftRitem->IndexCount, 1, mAircraftRitem->StartIndexLocation, mAircraftRitem->BaseVertexLocation, 0);
+	}
+}

@@ -1,54 +1,49 @@
 #include "Entity.h"
 
-void Entity::setVelocity(XMVECTOR velocity)
+Entity::Entity(Game* game) : SceneNode(game), mVelocity(0, 0, 0)
+{
+}
+
+void Entity::setVelocity(XMFLOAT3 velocity)
 {
 	mVelocity = velocity;
 }
 
 void Entity::setVelocity(float vx, float vy, float vz)
 {
-	mVelocity = XMVECTOR{ vx, vy, vz };
+	mVelocity.x = vx;
+	mVelocity.y = vy;
+	mVelocity.z = vz;
 }
 
-XMVECTOR Entity::getVelocity() const
+XMFLOAT3 Entity::getVelocity() const
 {
 	return mVelocity;
 }
 
-void Entity::updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList)
+void Entity::accelerate(XMFLOAT3 velocity)
 {
-	XMVECTOR move = mVelocity * dt.DeltaTime();
-	mPosition = XMVectorAdd(SceneNode::getWorldPosition(), move);
-	renderItem = std::move(renderList[renderIndex]);
-	renderItem->NumFramesDirty = 1;
-	XMStoreFloat4x4(&renderItem->World, XMMatrixScaling(XMVectorGetX(ScaleFactor), XMVectorGetY(ScaleFactor), XMVectorGetZ(ScaleFactor)) * XMMatrixTranslationFromVector(mPosition));
-	renderList[renderIndex] = std::move(renderItem);
-
+	mVelocity.x = mVelocity.x + velocity.x;
+	mVelocity.y = mVelocity.y + velocity.y;
+	mVelocity.z = mVelocity.z + velocity.z;
 }
 
+void Entity::accelerate(float vx, float vy, float vz)
+{
+	mVelocity.x = mVelocity.x + vx;
+	mVelocity.y = mVelocity.y + vy;
+	mVelocity.z = mVelocity.z + vz;
+}
 
-//* Week3-Demo7 Code
-//#include "Entity.hpp"
-//
-//void Entity::setVelocity(sf::Vector2f velocity)
-//{
-//	mVelocity = velocity;
-//}
-//
-//void Entity::setVelocity(float vx, float vy)
-//{
-//	mVelocity.x = vx;
-//	mVelocity.y = vy;
-//}
-//
-//sf::Vector2f Entity::getVelocity() const
-//{
-//	return mVelocity;
-//}
-//
-//void Entity::updateCurrent(sf::Time dt)
-//{
-//	move(mVelocity * dt.asSeconds());
-//}\
+void Entity::updateCurrent(const GameTimer& gt)
+{
+	XMFLOAT3 mV;
+	mV.x = mVelocity.x * gt.DeltaTime();
+	mV.y = mVelocity.y * gt.DeltaTime();
+	mV.z = mVelocity.z * gt.DeltaTime();
 
+	move(mV.x, mV.y, mV.z);
 
+	renderer->World = getWorldTransform();
+	renderer->NumFramesDirty++;
+}
