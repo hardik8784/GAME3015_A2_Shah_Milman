@@ -49,13 +49,13 @@
     <ClCompile Include="..\..\Common\MathHelper.cpp">
       <Filter>Game Engine\Source</Filter>
     </ClCompile>
-    <ClCompile Include="AirCraft.cpp">
+    <ClCompile Include="Aircraft.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="Command.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
-    <ClCompile Include="CommandQue.cpp">
+    <ClCompile Include="CommandQueue.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="Entity.cpp">
@@ -67,10 +67,16 @@
     <ClCompile Include="Game.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Game\Source</Filter>
+    </ClCompile>
     <ClCompile Include="Player.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="SceneNode.cpp">
+      <Filter>Game\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SpriteNode.cpp">
       <Filter>Game\Source</Filter>
     </ClCompile>
     <ClCompile Include="Waves.cpp">
@@ -108,7 +114,7 @@
     <ClInclude Include="..\..\Common\UploadBuffer.h">
       <Filter>Game Engine\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="AirCraft.h">
+    <ClInclude Include="Aircraft.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="Category.h">
@@ -117,13 +123,13 @@
     <ClInclude Include="Command.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="CommandQue.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Entity.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="FrameResource.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="Player.h">
@@ -132,13 +138,13 @@
     <ClInclude Include="SceneNode.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="SpriteNode.h">
+      <Filter>Game\Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Waves.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
     <ClInclude Include="World.h">
-      <Filter>Game\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.h">
       <Filter>Game\Headers</Filter>
     </ClInclude>
   </ItemGroup>
