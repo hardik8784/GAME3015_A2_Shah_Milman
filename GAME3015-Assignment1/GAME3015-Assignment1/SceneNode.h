@@ -1,8 +1,12 @@
 #pragma once
-
 #include "../../Common/d3dApp.h"
 #include "../../Common/MathHelper.h"
-#include <vector>
+#include "../../Common/UploadBuffer.h"
+#include "../../Common/GeometryGenerator.h"
+#include "../../Common/Camera.h"
+#include "FrameResource.h"
+
+#include "Category.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -45,84 +49,56 @@ struct RenderItem
 	int BaseVertexLocation = 0;
 };
 
+class Game;
+struct Command;
+
 class SceneNode
 {
 public:
 	typedef std::unique_ptr<SceneNode> Ptr;
 
-public:
-	SceneNode();
-	void attachChild(Ptr child);
-	Ptr	detachChild(const SceneNode& node);
-
-	void update(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
-
-	XMVECTOR getWorldPosition() const;
-	XMVECTOR getWorldTransform() const;
-
-	std::unique_ptr<RenderItem> renderItem;
-	int renderIndex;
-
-	XMVECTOR mPosition;
-	XMVECTOR ScaleFactor;
-
-private:
-	virtual void updateCurrent(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
-	void updateChildren(GameTimer dt, std::vector<std::unique_ptr<RenderItem>>& renderList);
-
-	virtual void draw(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems) ;
-	virtual void drawCurrent(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems);
-	void drawChildren(ID3D12GraphicsCommandList* cmdList, RenderItem& ritems);
-
-
-private:
-	std::vector<Ptr> mChildren;
-	SceneNode* mParent;
-};
-
-
-/*
-* Week3-Demo7 Code
-
-#pragma once
-
-#include <SFML/System/NonCopyable.hpp>
-#include <SFML/System/Time.hpp>
-#include <SFML/Graphics/Transformable.hpp>
-#include <SFML/Graphics/Drawable.hpp>
-
-#include <vector>
-#include <memory>
-
-
-class SceneNode : public sf::Transformable, public sf::Drawable, private sf::NonCopyable
-{
-public:
-	typedef std::unique_ptr<SceneNode> Ptr;
-
 
 public:
-	SceneNode();
+	SceneNode(Game* game);
 
 	void					attachChild(Ptr child);
 	Ptr						detachChild(const SceneNode& node);
 
-	void					update(sf::Time dt);
+	void					update(const GameTimer& gt);
+	void					draw() const;
+	void					build();
 
-	sf::Vector2f			getWorldPosition() const;
-	sf::Transform			getWorldTransform() const;
+	XMFLOAT3				getWorldPosition() const;
+	void					setPosition(float x, float y, float z);
+	XMFLOAT3				getWorldRotation() const;
+	void					setWorldRotation(float x, float y, float z);
+	XMFLOAT3				getWorldScale() const;
+	void					setScale(float x, float y, float z);
 
+	XMFLOAT4X4				getWorldTransform() const;
+	XMFLOAT4X4				getTransform() const;
 
+	void					onCommand(const Command& command, const GameTimer& gt);
+	virtual unsigned int	getCategory() const;
+
+	void					move(float x, float y, float z);
 private:
-	virtual void			updateCurrent(sf::Time dt);
-	void					updateChildren(sf::Time dt);
+	virtual void			updateCurrent(const GameTimer& gt);
+	void					updateChildren(const GameTimer& gt);
 
-	virtual void			draw(sf::RenderTarget& target, sf::RenderStates states) const;
-	virtual void			drawCurrent(sf::RenderTarget& target, sf::RenderStates states) const;
-	void					drawChildren(sf::RenderTarget& target, sf::RenderStates states) const;
+	virtual void			drawCurrent() const;
+	void					drawChildren() const;
+	virtual void			buildCurrent();
+	void					buildChildren();
 
-
+protected:
+	Game* game;
+	RenderItem* renderer;
 private:
+	XMFLOAT3				mWorldPosition;
+	XMFLOAT3				mWorldRotation;
+	XMFLOAT3				mWorldScaling;
 	std::vector<Ptr>		mChildren;
 	SceneNode* mParent;
-};*/
+};
+
