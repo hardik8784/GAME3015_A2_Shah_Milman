@@ -14,6 +14,10 @@ World::World(Game* game)
 {
 }
 
+/// <summary>
+/// Updates the scene graph, calls the update function of eahc scene node
+/// </summary>
+/// <param name="gt"></param>
 void World::update(const GameTimer& gt)
 {
 
@@ -38,6 +42,9 @@ CommandQueue& World::getCommandQueue()
 	return mCommandQueue;
 }
 
+/// <summary>
+/// Builds the game scene, creates scene nodes and adds the m to the scene graph
+/// </summary>
 void World::buildScene()
 {
 	std::unique_ptr<Aircraft> player(new Aircraft(Aircraft::Type::Eagle, mGame));

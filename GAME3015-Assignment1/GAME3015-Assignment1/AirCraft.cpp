@@ -1,6 +1,12 @@
 #include "Aircraft.h"
 #include "Game.h"
 
+ 
+/// <summary>
+/// Aircraft constructor, sets the sprite based on the type of the aircraft
+/// </summary>
+/// <param name="type"></param>
+/// <param name="game"></param>
 Aircraft::Aircraft(Type type, Game* game) : Entity(game)
 , mType(type)
 {
@@ -30,6 +36,10 @@ unsigned int Aircraft::getCategory() const
 	}
 }
 
+
+/// <summary>
+/// Builds an aircraft render item and adds it to the mAllRenderItems in the game class
+/// </summary>
 void Aircraft::buildCurrent()
 {
 	auto render = std::make_unique<RenderItem>();

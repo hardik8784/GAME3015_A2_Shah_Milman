@@ -37,6 +37,11 @@ void SpriteNode::drawCurrent() const
 
 }
 
+/**
+ * Builds a sprite render item and adds it to the mAllRenderItems in the game class
+ *
+ * @return void
+ */
 void SpriteNode::buildCurrent()
 {
 	auto render = std::make_unique<RenderItem>();
