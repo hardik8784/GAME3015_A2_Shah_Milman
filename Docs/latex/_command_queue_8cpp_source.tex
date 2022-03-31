@@ -1,0 +1,25 @@
+\hypertarget{_command_queue_8cpp_source}{}\doxysection{Command\+Queue.\+cpp}
+\label{_command_queue_8cpp_source}\index{H:/GAME3015/GAME3015\_A2\_Shah\_Milman/GAME3015-\/Assignment1/GAME3015-\/Assignment1/CommandQueue.cpp@{H:/GAME3015/GAME3015\_A2\_Shah\_Milman/GAME3015-\/Assignment1/GAME3015-\/Assignment1/CommandQueue.cpp}}
+\mbox{\hyperlink{_command_queue_8cpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00001}00001 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{_command_queue_8h}{CommandQueue.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00002}00002 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{_scene_node_8h}{SceneNode.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00003}00003 }
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00008}\mbox{\hyperlink{class_command_queue_ad444e0d7af45d9e09b834f0cec1e1f43}{00008}} \textcolor{keywordtype}{void} \mbox{\hyperlink{class_command_queue_ad444e0d7af45d9e09b834f0cec1e1f43}{CommandQueue::push}}(\textcolor{keyword}{const} \mbox{\hyperlink{struct_command}{Command}}\& command)}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00009}00009 \{}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00010}00010     \mbox{\hyperlink{class_command_queue_a0d18127b51634d3a2c2b581f164f52d4}{mQueue}}.push(command);}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00011}00011 \}}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00012}00012 }
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00017}\mbox{\hyperlink{class_command_queue_ac2dde510222b8df393b55978f4594194}{00017}} \mbox{\hyperlink{struct_command}{Command}} \mbox{\hyperlink{class_command_queue_ac2dde510222b8df393b55978f4594194}{CommandQueue::pop}}()}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00018}00018 \{}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00019}00019     \mbox{\hyperlink{struct_command}{Command}} command = \mbox{\hyperlink{class_command_queue_a0d18127b51634d3a2c2b581f164f52d4}{mQueue}}.front();}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00020}00020     \mbox{\hyperlink{class_command_queue_a0d18127b51634d3a2c2b581f164f52d4}{mQueue}}.pop();}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00021}00021     \textcolor{keywordflow}{return} command;}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00022}00022 \}}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00023}00023 }
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00028}\mbox{\hyperlink{class_command_queue_a3a6eb6a7c83d9b20ad7a6cac63795ec1}{00028}} \textcolor{keywordtype}{bool} \mbox{\hyperlink{class_command_queue_a3a6eb6a7c83d9b20ad7a6cac63795ec1}{CommandQueue::isEmpty}}()\textcolor{keyword}{ const}}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00029}00029 \textcolor{keyword}{}\{}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00030}00030     \textcolor{keywordflow}{return} \mbox{\hyperlink{class_command_queue_a0d18127b51634d3a2c2b581f164f52d4}{mQueue}}.empty();}
+\DoxyCodeLine{\Hypertarget{_command_queue_8cpp_source_l00031}00031 \}}
+
+\end{DoxyCode}
